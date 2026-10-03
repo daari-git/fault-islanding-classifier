@@ -278,10 +278,6 @@ The receiving-end currents are almost the same, because the feeder is symmetrica
 
 The no-fault row uses an enlarged current scale; the fault rows share one scale.
 
-Sending- and receiving-end voltage and current for the three-phase fault:
-
-![Case 1, LLL fault: sending and receiving end](figures/sending_receiving/Case1_LLL.png)
-
 #### Case 2: islanding
 
 Both breakers open at 2.0 s with the load matched to the PV output. The main-grid current drops to zero and the PV inverter keeps supplying the loads at 50 Hz and nominal voltage. This is the non-detection case: the island survives only because the load equals the PV output.
@@ -311,11 +307,74 @@ The island forms at 2.0 s (matched load) and each fault is applied at 2.3 s.
 
 ![Case 3: fault during islanding](figures/three_cases/Case3_fault_during_islanding.png)
 
-Sending- and receiving-end voltage and current for the LG fault inside the island:
+#### Sending- and receiving-end voltage and current
 
-![Case 3, LG fault: sending and receiving end](figures/sending_receiving/Case3_LG.png)
+Each figure shows the three-phase voltage and current at the sending end (main-grid side, left) and the receiving end (far-grid side, right) of the 3.3 kV feeder. The fault period is shaded and a vertical line marks the breakers opening. Voltages share one scale across all figures; currents share one scale within each case.
 
-The same four-panel figure for every condition is in `figures/sending_receiving/`.
+<details open>
+<summary><b>Case 1: grid connected (fault at 2.0 s)</b></summary>
+
+No fault. Each grid supplies 130 A per phase:
+
+![Case 1, no fault](figures/sending_receiving/Case1_NoFault.png)
+
+LG fault (A-G). Phase A current rises to 1,102 A RMS; the PV inverter trips, so the grids carry more load current afterwards:
+
+![Case 1, LG fault](figures/sending_receiving/Case1_LG.png)
+
+LL fault (B-C). Phases B and C rise to about 1,900 A RMS:
+
+![Case 1, LL fault](figures/sending_receiving/Case1_LL.png)
+
+LLG fault (A-B-G). Phases A and B rise to about 2,100 A RMS:
+
+![Case 1, LLG fault](figures/sending_receiving/Case1_LLG.png)
+
+LLL fault (A-B-C). All three phases rise to 2,200–2,440 A RMS, with a first peak of about 5,500 A:
+
+![Case 1, LLL fault](figures/sending_receiving/Case1_LLL.png)
+
+LLLG fault (A-B-C-G). The same as the LLL fault, because a balanced three-phase fault carries no ground current:
+
+![Case 1, LLLG fault](figures/sending_receiving/Case1_LLLG.png)
+
+</details>
+
+<details open>
+<summary><b>Case 2: islanding (breakers open at 2.0 s)</b></summary>
+
+Both currents drop to zero when the breakers open. The voltages stay at nominal because the PV inverter supplies the matched load:
+
+![Case 2, islanding](figures/sending_receiving/Case2_Islanding.png)
+
+</details>
+
+<details open>
+<summary><b>Case 3: fault during islanding (island at 2.0 s, fault at 2.3 s)</b></summary>
+
+The currents at both ends are zero because the breakers are open, so the fault shows only in the voltages.
+
+LG fault (A-G). Phase A falls to 0.35 kV and the healthy phases rise to 2.2 kV:
+
+![Case 3, LG fault](figures/sending_receiving/Case3_LG.png)
+
+LL fault (B-C). Phases B and C fall to 1.07 kV:
+
+![Case 3, LL fault](figures/sending_receiving/Case3_LL.png)
+
+LLG fault (A-B-G). Phases A and B fall to 0.32 kV:
+
+![Case 3, LLG fault](figures/sending_receiving/Case3_LLG.png)
+
+LLL fault (A-B-C). All three phase voltages collapse to about zero:
+
+![Case 3, LLL fault](figures/sending_receiving/Case3_LLL.png)
+
+LLLG fault (A-B-C-G). The same as the LLL fault:
+
+![Case 3, LLLG fault](figures/sending_receiving/Case3_LLLG.png)
+
+</details>
 
 ## Reference
 
