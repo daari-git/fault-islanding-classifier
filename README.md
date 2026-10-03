@@ -177,6 +177,45 @@ The voltage trip settings match the IEEE 1547-2018 Category III defaults (Table 
 - Follow the IEEE 1547.1 unintentional islanding test procedure (mismatch steps and ranges).
 - Add fault scenarios (LG, LL, LLG, LLL) and non-islanding events, and start generating the ML dataset.
 
+### 2026-10-03: Fault and islanding waveforms
+
+A fault subsystem with five fault blocks (LG, LL, LLG, LLL, LLLG) was added at the mid-feeder bus, the same bus as the PV inverter transformer. Each case below is a separate simulation with the event applied after the inverter has reached full power. Faults last 0.1 s (5 cycles) and have 0.001 Ω fault resistance.
+
+#### Case 1: grid connected, main grid and PV both supply the load
+
+The loads are raised by 50 % (4.5 MW in total), so the PV supplies 3 MW and the two grids supply the rest. Fault at 2.0 s.
+
+| Case | Main-grid current during the event (RMS, A / B / C) | PV inverter |
+|---|---|---|
+| No fault | 39 / 39 / 39 A | steady at 3 MW |
+| LG (A-G) | 335 / 91 / 101 A | trips about 55 ms into the fault |
+| LL (B-C) | 31 / 577 / 553 A | rides through |
+| LLG (A-B-G) | 651 / 617 / 32 A | rides through |
+| LLL | 750 / 673 / 683 A | rides through |
+| LLLG | 750 / 673 / 683 A | rides through |
+
+![Case 1: grid-connected faults](figures/three_cases/Case1_grid_connected_faults.png)
+
+The no-fault row uses an enlarged current scale; the fault rows share one scale.
+
+#### Case 2: islanding
+
+Both breakers open at 2.0 s with the load matched to the PV output. The main-grid current drops to zero and the PV inverter keeps supplying the loads at 50 Hz and nominal voltage. This is the non-detection case: the island survives only because the load equals the PV output. With a 1 % reactive mismatch the frequency collapses and the inverter trips in 0.53 s (`figures/waveforms/Islanding.png`).
+
+![Case 2: islanding](figures/three_cases/Case2_islanding.png)
+
+#### Case 3: fault during islanding
+
+The island forms at 2.0 s (matched load) and each fault is applied at 2.3 s.
+
+- The fault current is small. The PV inverter is the only source in the island and limits its current to about 1.2 times its normal value (about 4.3–4.5 kA RMS at 480 V, against 3.6 kA before the fault).
+- The voltage shows the fault type: one phase collapses for LG, two phases sag for LL, two collapse for LLG, and all three collapse for LLL and LLLG.
+- The island does not recover. After the fault clears the voltage decays, the frequency runs away to 67–76 Hz and the inverter trips at about 2.65 s in every case.
+
+![Case 3: fault during islanding](figures/three_cases/Case3_fault_during_islanding.png)
+
+Per-case current graphs for the matched-load condition are in `figures/waveforms/`.
+
 ## Reference
 
 S. Khanal, S. Khadka, B. M. Pati and S. Parajuli, "Enhancing Transmission Line Fault Classification and Prediction of Fault Location Using ML and DL Techniques," *IET Generation, Transmission & Distribution*, 2026. https://doi.org/10.1049/gtd2.70390
