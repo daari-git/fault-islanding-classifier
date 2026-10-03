@@ -1,6 +1,6 @@
 # fault-islanding-classifier
 
-Fault and islanding classification in an 11 kV distribution network with an EPRI research inverter, built in MATLAB/Simulink.
+Fault and islanding analysis of a 3.3 kV distribution feeder with an IEEE 1547-2018 (EPRI) PV inverter, built in MATLAB/Simulink. The longer-term goal is a classifier that separates faults from islanding events.
 
 ## Overview
 
@@ -8,7 +8,7 @@ This project extends the study *"Enhancing Transmission Line Fault Classificatio
 
 This repository takes the same approach and changes three things:
 
-1. **Distribution network instead of transmission line.** The test system is an 11 kV radial distribution feeder.
+1. **Distribution network instead of transmission line.** The test system is a 3.3 kV distribution feeder supplied from a 132 kV grid at each end. It was first built at 11 kV; see [Progress](#progress).
 2. **Inverter-based DER.** An EPRI research inverter model is connected to the feeder as a PV/DER source.
 3. **Islanding.** Islanding events are simulated and classified alongside faults, so one model can tell faults, islanding and normal switching events apart.
 
@@ -16,13 +16,13 @@ This repository takes the same approach and changes three things:
 
 | Item | Value |
 |---|---|
-| Grid source | 33/11 kV substation (modelled as a Thevenin source) |
-| Feeder voltage | 11 kV, 50 Hz, three-phase radial |
-| Lines | Overhead line sections (PI models) between buses |
-| Loads | Balanced and unbalanced RLC loads at feeder buses |
-| DER | EPRI research inverter (grid-following PV inverter) at a chosen bus, through an 0.4/11 kV transformer |
-| Point of common coupling (PCC) | Circuit breaker between the DER section and the rest of the feeder, used to create islanding |
-| Measurements | Three-phase voltages and currents at the substation and at the PCC |
+| Grid source | A 132 kV grid at each end of the feeder, each through a 132/3.3 kV, 250 MVA transformer and a breaker |
+| Feeder voltage | 3.3 kV, 50 Hz, three-phase |
+| Lines | Two 3 km PI-section lines, with the PV inverter and the fault point at the bus between them |
+| Loads | Two 1.5 MW RLC loads (quality factor 1), one at each end of the feeder |
+| DER | IEEE 1547-2018 grid-following PV inverter (3 MW, 480 V) at the mid-feeder bus, through a 3.3 kV/480 V, 5 MVA transformer |
+| Islanding | Both grid breakers open, leaving the PV inverter, the two lines and the two loads as an island |
+| Measurements | Three-phase voltages and currents at the sending end (main-grid side), the receiving end (far-grid side) and the PV inverter terminals |
 
 ### Features recorded
 
@@ -61,15 +61,14 @@ Each scenario is swept over:
 
 ```
 fault-islanding-classifier/
-├── models/
-│   ├── feeder_11kV.slx          # 11 kV distribution network
-│   └── epri_inverter/           # EPRI research inverter model (download separately)
-├── scripts/
-│   ├── run_faults.m             # sweeps fault scenarios
-│   ├── run_islanding.m          # sweeps islanding and non-islanding scenarios
-│   └── extract_features.m       # builds the feature table from simulation output
-├── data/                        # generated CSV / MAT datasets
-├── ml/                          # training and evaluation (MATLAB or Python)
+├── Islanding_case.slx           # the model (MATLAB R2024b)
+├── MATLAB 2021/
+│   └── Islanding_case.slx       # the same model exported for MATLAB R2021b
+├── run_case.m                   # runs one case from the Command Window
+├── figures/
+│   ├── sending_receiving/       # sending- and receiving-end voltage and current, one figure per condition
+│   ├── three_cases/             # one summary figure per case
+│   └── *.png                    # model diagram and IEEE 1547 mismatch results
 └── README.md
 ```
 
@@ -91,8 +90,9 @@ The model `Islanding_case.slx` runs three cases. You choose the case with three 
 1. Open MATLAB and go to the project folder.
 2. Double-click `Islanding_case.slx` to open it in Simulink.
 3. Press **Run** on the **Simulation** tab. A run takes about 30–60 seconds (simulated time 2.8 s).
-4. Two scope windows open by themselves:
+4. Three scope windows open by themselves:
    - **Waveforms**: main-grid current, PV inverter current and PV inverter voltage, for the last second of the run (1.8–2.8 s).
+   - **Sending and Receiving End V-I**: voltage and current at the main-grid end and the far-grid end of the feeder (3.3 kV).
    - **IEEE 1547 Islanding Results**: power through the breakers, inverter P and Q, voltage, frequency and current.
 
    Two displays on the diagram show the clearing time after islanding and PASS/FAIL against the 2 s limit of IEEE 1547-2018.
@@ -101,7 +101,19 @@ As saved, the model runs Case 1 with no fault (normal operation).
 
 `Islanding_case.slx` in the project folder is saved in MATLAB R2024b. The same model exported for MATLAB R2021b is in `MATLAB 2021/Islanding_case.slx`; use that copy if you have an older release.
 
-### Choose a case
+### Run a case with one command
+
+`run_case.m` sets the case, runs the model and opens the scopes. It does not change the saved model file. In the MATLAB Command Window:
+
+```matlab
+run_case(1,'none')      % normal operation, grid connected
+run_case(1,'LG')        % LG fault, grid connected   (also 'LL', 'LLG', 'LLL', 'LLLG')
+run_case(2)             % islanding, island survives
+run_case(2,'none',1)    % islanding with 1 % reactive mismatch, inverter trips
+run_case(3,'LLL')       % fault during islanding     (also 'LG', 'LL', 'LLG', 'LLLG')
+```
+
+### Choose a case in the model
 
 1. Right-click an empty area of the diagram and choose **Model Properties**. (Or: **Modeling** tab → the arrow under **Model Settings** → **Model Properties**.)
 2. Open the **Callbacks** tab and select **InitFcn**.
@@ -115,8 +127,8 @@ As saved, the model runs Case 1 with no fault (normal operation).
 
 | To show | `CaseNo` | `FaultType` | `Qmismatch` | Result |
 |---|---|---|---|---|
-| Normal operation | 1 | `'none'` | 0 | Grid supplies 39 A per phase, PV supplies 3 MW |
-| Fault, grid connected | 1 | `'LG'`, `'LL'`, `'LLG'`, `'LLL'`, `'LLLG'` | 0 | Fault at 2.0 s for 0.1 s; grid current rises to 300–750 A on the faulted phases |
+| Normal operation | 1 | `'none'` | 0 | Each grid supplies 130 A per phase, PV supplies 3 MW |
+| Fault, grid connected | 1 | `'LG'`, `'LL'`, `'LLG'`, `'LLL'`, `'LLLG'` | 0 | Fault at 2.0 s for 0.1 s; grid current rises to 1,100–2,400 A RMS on the faulted phases |
 | Islanding, island survives | 2 | not used | 0 | Breakers open at 2.0 s; PV keeps supplying the matched load at 50 Hz |
 | Islanding, inverter trips | 2 | not used | 1 | Frequency falls below 48 Hz; inverter trips about 0.55 s after islanding |
 | Fault during islanding | 3 | `'LG'`, `'LL'`, `'LLG'`, `'LLL'`, `'LLLG'` | 0 | Island at 2.0 s, fault at 2.3 s; PV current rises only about 20 %, then the inverter trips |
@@ -158,6 +170,8 @@ The steps below describe the planned scripts for generating the ML dataset. They
 ## Progress
 
 ### 2026-10-01: Islanding test model (`Islanding_case.slx`)
+
+> This entry describes the first version of the model: an 11 kV feeder with two 33 km lines, with islanding at 2.5 s. The feeder was converted to 3.3 kV on 2026-10-03 (see below). The two feeders are equivalent in per-unit terms; the ±1 % mismatch trip times were re-checked on the 3.3 kV feeder and are unchanged (0.556 s and 0.438 s). The model diagram below shows the current model.
 
 The first working model of the islanding study.
 
@@ -228,46 +242,80 @@ The voltage trip settings match the IEEE 1547-2018 Category III defaults (Table 
 - Follow the IEEE 1547.1 unintentional islanding test procedure (mismatch steps and ranges).
 - Add fault scenarios (LG, LL, LLG, LLL) and non-islanding events, and start generating the ML dataset.
 
-### 2026-10-03: Fault and islanding waveforms
+### 2026-10-03: Fault and islanding cases on the 3.3 kV feeder
 
-A fault subsystem with five fault blocks (LG, LL, LLG, LLL, LLLG) was added at the mid-feeder bus, the same bus as the PV inverter transformer. Each case below is a separate simulation with the event applied after the inverter has reached full power. Faults last 0.1 s (5 cycles) and have 0.001 Ω fault resistance.
+**Fault subsystem.** A subsystem with five fault blocks (LG, LL, LLG, LLL, LLLG) was added at the mid-feeder bus, the same bus as the PV inverter transformer. Faults last 0.1 s (5 cycles) and have 0.001 Ω fault resistance.
+
+**Feeder converted from 11 kV to 3.3 kV.** The grid transformers are now 132/3.3 kV, the PV transformer is 3.3 kV/480 V, and each line is a 3 km PI section instead of a 33 km distributed-parameter line. The line length was scaled by the square of the voltage ratio, 33 km × (3.3/11)² ≈ 3 km, so the feeder has the same per-unit impedance as before. Currents are about 3.3 times larger; the inverter's behaviour is unchanged. The loads were re-tuned so the power through both breakers is zero in the matched case.
+
+| Three-phase fault, grid connected | 11 kV, 33 km lines | 3.3 kV, 3 km lines |
+|---|---|---|
+| Normal current per grid end | 39 A | 130 A |
+| Fault current per grid end (RMS) | about 750 A | about 2,440 A |
+
+On the 3.3 kV feeder the first peak of the three-phase fault current reaches about 5,500 A.
+
+**Case selection.** The model selects the cases with `CaseNo`, `FaultType` and `Qmismatch` in the InitFcn, or with `run_case.m` (see [How to run](#how-to-run)). The breakers open at 2.0 s and the stop time is 2.8 s.
+
+Each case below is a separate simulation, with the event applied after the inverter has reached full power.
 
 #### Case 1: grid connected, main grid and PV both supply the load
 
 The loads are raised by 50 % (4.5 MW in total), so the PV supplies 3 MW and the two grids supply the rest. Fault at 2.0 s.
 
-| Case | Main-grid current during the event (RMS, A / B / C) | PV inverter |
+| Case | Sending-end current during the event (RMS, A / B / C) | PV inverter |
 |---|---|---|
-| No fault | 39 / 39 / 39 A | steady at 3 MW |
-| LG (A-G) | 335 / 91 / 101 A | trips about 55 ms into the fault |
-| LL (B-C) | 31 / 577 / 553 A | rides through |
-| LLG (A-B-G) | 651 / 617 / 32 A | rides through |
-| LLL | 750 / 673 / 683 A | rides through |
-| LLLG | 750 / 673 / 683 A | rides through |
+| No fault | 130 / 130 / 130 A | steady at 3 MW |
+| LG (A-G) | 1,102 / 304 / 336 A | trips about 65 ms into the fault |
+| LL (B-C) | 103 / 1,902 / 1,820 A | rides through |
+| LLG (A-B-G) | 2,127 / 2,016 / 106 A | rides through |
+| LLL | 2,440 / 2,212 / 2,238 A | rides through |
+| LLLG | 2,440 / 2,212 / 2,238 A | rides through |
+
+The receiving-end currents are almost the same, because the feeder is symmetrical about the fault. The voltages at both ends dip by only about 1 % during these faults: the measurement points are next to the strong grids, and the fault is 3 km away at the middle of the feeder.
 
 ![Case 1: grid-connected faults](figures/three_cases/Case1_grid_connected_faults.png)
 
 The no-fault row uses an enlarged current scale; the fault rows share one scale.
 
+Sending- and receiving-end voltage and current for the three-phase fault:
+
+![Case 1, LLL fault: sending and receiving end](figures/sending_receiving/Case1_LLL.png)
+
 #### Case 2: islanding
 
-Both breakers open at 2.0 s with the load matched to the PV output. The main-grid current drops to zero and the PV inverter keeps supplying the loads at 50 Hz and nominal voltage. This is the non-detection case: the island survives only because the load equals the PV output. With a 1 % reactive mismatch the frequency collapses and the inverter trips in 0.53 s (`figures/waveforms/Islanding.png`).
+Both breakers open at 2.0 s with the load matched to the PV output. The main-grid current drops to zero and the PV inverter keeps supplying the loads at 50 Hz and nominal voltage. This is the non-detection case: the island survives only because the load equals the PV output.
 
 ![Case 2: islanding](figures/three_cases/Case2_islanding.png)
+
+With a 1 % reactive mismatch the frequency falls through the 48 Hz trip limit and the inverter trips 0.556 s after the breakers open:
+
+![Case 2: islanding with 1 % mismatch](figures/three_cases/Case2_islanding_trip_Q1.png)
 
 #### Case 3: fault during islanding
 
 The island forms at 2.0 s (matched load) and each fault is applied at 2.3 s.
 
+- The currents at the sending and receiving ends are zero, because both breakers are open.
 - The fault current is small. The PV inverter is the only source in the island and limits its current to about 1.2 times its normal value (about 4.3–4.5 kA RMS at 480 V, against 3.6 kA before the fault).
-- The voltage shows the fault type: one phase collapses for LG, two phases sag for LL, two collapse for LLG, and all three collapse for LLL and LLLG.
-- The island does not recover. After the fault clears the voltage decays, the frequency runs away to 67–76 Hz and the inverter trips at about 2.65 s in every case.
+- The voltage shows the fault type (nominal phase voltage is 1.9 kV):
+
+  | Fault | Feeder voltage during the fault (RMS, A / B / C) |
+  |---|---|
+  | LG (A-G) | 0.35 / 2.21 / 2.18 kV |
+  | LL (B-C) | 2.14 / 1.07 / 1.07 kV |
+  | LLG (A-B-G) | 0.32 / 0.32 / 2.20 kV |
+  | LLL and LLLG | about 0 on all phases |
+
+- The island does not recover. After the fault clears the voltage decays, the frequency runs away above 65 Hz and the inverter trips between 2.65 s and 2.69 s in every case.
 
 ![Case 3: fault during islanding](figures/three_cases/Case3_fault_during_islanding.png)
 
-Per-case current graphs for the matched-load condition are in `figures/waveforms/`.
+Sending- and receiving-end voltage and current for the LG fault inside the island:
 
-The model now selects these cases with `CaseNo`, `FaultType` and `Qmismatch` in the InitFcn (see [How to run](#how-to-run)). This replaces the `Tisland` and `Pmismatch` settings described in the 2026-10-01 entry: the breakers now open at 2.0 s instead of 2.5 s, the stop time is 2.8 s, and a `Waveforms` scope was added inside the analysis block.
+![Case 3, LG fault: sending and receiving end](figures/sending_receiving/Case3_LG.png)
+
+The same four-panel figure for every condition is in `figures/sending_receiving/`.
 
 ## Reference
 
