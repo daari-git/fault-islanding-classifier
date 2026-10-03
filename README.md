@@ -97,7 +97,9 @@ The model `Islanding_case.slx` runs three cases. You choose the case with three 
 
    Two displays on the diagram show the clearing time after islanding and PASS/FAIL against the 2 s limit of IEEE 1547-2018.
 
-As saved, the model runs Case 1 with an LG fault.
+As saved, the model runs Case 1 with no fault (normal operation).
+
+`Islanding_case.slx` in the project folder is saved in MATLAB R2024b. The same model exported for MATLAB R2021b is in `MATLAB 2021/Islanding_case.slx`; use that copy if you have an older release.
 
 ### Choose a case
 
