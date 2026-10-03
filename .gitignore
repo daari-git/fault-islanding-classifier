@@ -1,0 +1,10 @@
+Archive/
+
+# Simulink generated files
+slprj/
+*.slxc
+*.autosave
+*.asv
+
+# Licensed standards (do not publish)
+IEEE*.pdf
