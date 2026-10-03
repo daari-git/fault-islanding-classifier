@@ -84,6 +84,55 @@ fault-islanding-classifier/
 
 ## How to run
 
+The model `Islanding_case.slx` runs three cases. You choose the case with three lines in the model's InitFcn.
+
+### Run the model
+
+1. Open MATLAB and go to the project folder.
+2. Double-click `Islanding_case.slx` to open it in Simulink.
+3. Press **Run** on the **Simulation** tab. A run takes about 30–60 seconds (simulated time 2.8 s).
+4. Two scope windows open by themselves:
+   - **Waveforms**: main-grid current, PV inverter current and PV inverter voltage, for the last second of the run (1.8–2.8 s).
+   - **IEEE 1547 Islanding Results**: power through the breakers, inverter P and Q, voltage, frequency and current.
+
+   Two displays on the diagram show the clearing time after islanding and PASS/FAIL against the 2 s limit of IEEE 1547-2018.
+
+As saved, the model runs Case 1 with an LG fault.
+
+### Choose a case
+
+1. Right-click an empty area of the diagram and choose **Model Properties**. (Or: **Modeling** tab → the arrow under **Model Settings** → **Model Properties**.)
+2. Open the **Callbacks** tab and select **InitFcn**.
+3. Edit these lines at the top, click **OK** and run again:
+
+   ```matlab
+   CaseNo    = 1;      % 1 = grid connected   2 = islanding   3 = fault during islanding
+   FaultType = 'LG';   % 'none'  'LG'  'LL'  'LLG'  'LLL'  'LLLG'   (not used in case 2)
+   Qmismatch = 0;      % extra capacitive reactive power (% of 1.5 MW per load)
+   ```
+
+| To show | `CaseNo` | `FaultType` | `Qmismatch` | Result |
+|---|---|---|---|---|
+| Normal operation | 1 | `'none'` | 0 | Grid supplies 39 A per phase, PV supplies 3 MW |
+| Fault, grid connected | 1 | `'LG'`, `'LL'`, `'LLG'`, `'LLL'`, `'LLLG'` | 0 | Fault at 2.0 s for 0.1 s; grid current rises to 300–750 A on the faulted phases |
+| Islanding, island survives | 2 | not used | 0 | Breakers open at 2.0 s; PV keeps supplying the matched load at 50 Hz |
+| Islanding, inverter trips | 2 | not used | 1 | Frequency falls below 48 Hz; inverter trips about 0.55 s after islanding |
+| Fault during islanding | 3 | `'LG'`, `'LL'`, `'LLG'`, `'LLL'`, `'LLLG'` | 0 | Island at 2.0 s, fault at 2.3 s; PV current rises only about 20 %, then the inverter trips |
+
+What each case sets:
+
+| `CaseNo` | Breakers open (`Tisland`) | Load (`Pmismatch`) | Fault time |
+|---|---|---|---|
+| 1 | never | +50 % (grid and PV share the load) | 2.0 s |
+| 2 | 2.0 s | matched to PV output | no fault |
+| 3 | 2.0 s | matched to PV output | 2.3 s |
+
+To zoom in on the event, use the zoom tool on the scope toolbar. MATLAB prints warnings about unconnected ports and unused Goto blocks inside the inverter; they do not affect the results.
+
+### Planned dataset workflow (not implemented yet)
+
+The steps below describe the planned scripts for generating the ML dataset. They are not in the repository yet.
+
 1. Clone the repository and open MATLAB in the project folder.
 2. Download the EPRI research inverter model and place it in `models/epri_inverter/`.
 3. Add the folders to the path:
@@ -215,6 +264,8 @@ The island forms at 2.0 s (matched load) and each fault is applied at 2.3 s.
 ![Case 3: fault during islanding](figures/three_cases/Case3_fault_during_islanding.png)
 
 Per-case current graphs for the matched-load condition are in `figures/waveforms/`.
+
+The model now selects these cases with `CaseNo`, `FaultType` and `Qmismatch` in the InitFcn (see [How to run](#how-to-run)). This replaces the `Tisland` and `Pmismatch` settings described in the 2026-10-01 entry: the breakers now open at 2.0 s instead of 2.5 s, the stop time is 2.8 s, and a `Waveforms` scope was added inside the analysis block.
 
 ## Reference
 
