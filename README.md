@@ -128,10 +128,10 @@ run_case(3,'LLL')       % fault during islanding     (also 'LG', 'LL', 'LLG', 'L
 | To show | `CaseNo` | `FaultType` | `Qmismatch` | Result |
 |---|---|---|---|---|
 | Normal operation | 1 | `'none'` | 0 | Each grid supplies 130 A per phase, PV supplies 3 MW |
-| Fault, grid connected | 1 | `'LG'`, `'LL'`, `'LLG'`, `'LLL'`, `'LLLG'` | 0 | Fault at 2.0 s for 0.1 s; grid current rises to 1,100–2,400 A RMS on the faulted phases |
+| Fault, grid connected | 1 | `'LG'`, `'LL'`, `'LLG'`, `'LLL'`, `'LLLG'` | 0 | Fault at 2.0 s for 0.1 s; grid current rises to 1,100–2,400 A RMS on the faulted phases; the PV inverter stops injecting during the fault |
 | Islanding, island survives | 2 | not used | 0 | Breakers open at 2.0 s; PV keeps supplying the matched load at 50 Hz |
 | Islanding, inverter trips | 2 | not used | 1 | Frequency falls below 48 Hz; inverter trips about 0.55 s after islanding |
-| Fault during islanding | 3 | `'LG'`, `'LL'`, `'LLG'`, `'LLL'`, `'LLLG'` | 0 | Island at 2.0 s, fault at 2.3 s; PV current rises only about 20 %, then the inverter trips |
+| Fault during islanding | 3 | `'LG'`, `'LL'`, `'LLG'`, `'LLL'`, `'LLLG'` | 0 | Island at 2.0 s, fault at 2.3 s; the inverter stops injecting within about 55 ms and the island voltage collapses |
 
 What each case sets:
 
@@ -266,11 +266,13 @@ The loads are raised by 50 % (4.5 MW in total), so the PV supplies 3 MW and the 
 | Case | Sending-end current during the event (RMS, A / B / C) | PV inverter |
 |---|---|---|
 | No fault | 130 / 130 / 130 A | steady at 3 MW |
-| LG (A-G) | 1,102 / 304 / 336 A | trips about 65 ms into the fault |
-| LL (B-C) | 103 / 1,902 / 1,820 A | rides through |
-| LLG (A-B-G) | 2,127 / 2,016 / 106 A | rides through |
-| LLL | 2,440 / 2,212 / 2,238 A | rides through |
-| LLLG | 2,440 / 2,212 / 2,238 A | rides through |
+| LG (A-G) | 1,115 / 394 / 395 A | stops injecting within 46 ms and stays off: the healthy phases rise to 1.34 pu, above the 1.20 pu limit |
+| LL (B-C) | 404 / 2,061 / 1,662 A | momentary cessation; back to 98 % of pre-fault power 0.4 s after the fault clears |
+| LLG (A-B-G) | 2,227 / 1,915 / 400 A | momentary cessation within 76 ms; back to 96 % after 0.4 s |
+| LLL | 2,440 / 2,212 / 2,238 A | momentary cessation within 51 ms; back to 90 % after 0.4 s |
+| LLLG | 2,440 / 2,212 / 2,238 A | same as LLL |
+
+While the inverter is in momentary cessation the grids also carry the load current the PV was supplying, which is why the healthy phases show about 400 A.
 
 The receiving-end currents are almost the same, because the feeder is symmetrical about the fault. The voltages at both ends dip by only about 1 % during these faults: the measurement points are next to the strong grids, and the fault is 3 km away at the middle of the feeder.
 
@@ -293,17 +295,8 @@ With a 1 % reactive mismatch the frequency falls through the 48 Hz trip limit an
 The island forms at 2.0 s (matched load) and each fault is applied at 2.3 s.
 
 - The currents at the sending and receiving ends are zero, because both breakers are open.
-- The fault current is small. The PV inverter is the only source in the island and limits its current to about 1.2 times its normal value (about 4.3–4.5 kA RMS at 480 V, against 3.6 kA before the fault).
-- The voltage shows the fault type (nominal phase voltage is 1.9 kV):
-
-  | Fault | Feeder voltage during the fault (RMS, A / B / C) |
-  |---|---|
-  | LG (A-G) | 0.35 / 2.21 / 2.18 kV |
-  | LL (B-C) | 2.14 / 1.07 / 1.07 kV |
-  | LLG (A-B-G) | 0.32 / 0.32 / 2.20 kV |
-  | LLL and LLLG | about 0 on all phases |
-
-- The island does not recover. After the fault clears the voltage decays, the frequency runs away above 65 Hz and the inverter trips between 2.65 s and 2.69 s in every case.
+- The inverter is the only source in the island. Its current rises briefly, then momentary cessation stops it injecting within about 55 ms of the fault (voltage below 0.5 pu).
+- With no source left, the island voltage collapses to zero on all phases and does not recover after the fault clears. The island is de-energized between 2.42 s and 2.49 s in every case, that is within 0.5 s of the island forming.
 
 ![Case 3: fault during islanding](figures/three_cases/Case3_fault_during_islanding.png)
 
@@ -318,15 +311,15 @@ No fault. Each grid supplies 130 A per phase:
 
 ![Case 1, no fault](figures/sending_receiving/Case1_NoFault.png)
 
-LG fault (A-G). Phase A current rises to 1,102 A RMS; the PV inverter trips, so the grids carry more load current afterwards:
+LG fault (A-G). Phase A current rises to 1,115 A RMS; the PV inverter stops and stays off, so the grids carry more load current afterwards:
 
 ![Case 1, LG fault](figures/sending_receiving/Case1_LG.png)
 
-LL fault (B-C). Phases B and C rise to about 1,900 A RMS:
+LL fault (B-C). Phases B and C rise to 1,660–2,060 A RMS:
 
 ![Case 1, LL fault](figures/sending_receiving/Case1_LL.png)
 
-LLG fault (A-B-G). Phases A and B rise to about 2,100 A RMS:
+LLG fault (A-B-G). Phases A and B rise to 1,900–2,230 A RMS:
 
 ![Case 1, LLG fault](figures/sending_receiving/Case1_LLG.png)
 
@@ -352,21 +345,21 @@ Both currents drop to zero when the breakers open. The voltages stay at nominal 
 <details open>
 <summary><b>Case 3: fault during islanding (island at 2.0 s, fault at 2.3 s)</b></summary>
 
-The currents at both ends are zero because the breakers are open, so the fault shows only in the voltages.
+The currents at both ends are zero because the breakers are open, so the fault shows only in the voltages. In every case the inverter stops injecting and the island voltage collapses.
 
-LG fault (A-G). Phase A falls to 0.35 kV and the healthy phases rise to 2.2 kV:
+LG fault (A-G). Phase A collapses at once; the other two phases follow within about two cycles:
 
 ![Case 3, LG fault](figures/sending_receiving/Case3_LG.png)
 
-LL fault (B-C). Phases B and C fall to 1.07 kV:
+LL fault (B-C):
 
 ![Case 3, LL fault](figures/sending_receiving/Case3_LL.png)
 
-LLG fault (A-B-G). Phases A and B fall to 0.32 kV:
+LLG fault (A-B-G). Phases A and B collapse at once; phase C follows:
 
 ![Case 3, LLG fault](figures/sending_receiving/Case3_LLG.png)
 
-LLL fault (A-B-C). All three phase voltages collapse to about zero:
+LLL fault (A-B-C). All three phase voltages collapse at once:
 
 ![Case 3, LLL fault](figures/sending_receiving/Case3_LLL.png)
 
@@ -375,6 +368,45 @@ LLLG fault (A-B-C-G). The same as the LLL fault:
 ![Case 3, LLLG fault](figures/sending_receiving/Case3_LLLG.png)
 
 </details>
+
+### 2026-10-04: Momentary cessation and frequency droop switched on
+
+The model was checked against IEEE 1547-2018 beyond the 2 s islanding rule. Two functions that the standard requires for Category III were switched off in the inverter block and are now on. The figures and tables in the 2026-10-03 entry show the model with these functions on.
+
+| Function | Clause | Setting | Before | Now |
+|---|---|---|---|---|
+| Momentary cessation | 6.4.2, Table 16 | `EnableMC` | off: the inverter kept injecting about 1.2 times rated current into faults | on: below 0.50 pu it stops injecting within 46–76 ms (the limit is 83 ms) |
+| Frequency droop | 6.5.2.7 | `EnableFW` | off | on: 0.036 Hz deadband, 5 % droop |
+
+After a fault clears, the inverter is back to 90–98 % of its pre-fault power within 0.4 s. The standard asks for at least 80 % within 0.4 s.
+
+**Islanding detection is unchanged.** The reactive-mismatch sweep was repeated on the 3.3 kV feeder with both functions on:
+
+| Reactive mismatch | Clearing time | 2 s limit |
+|---|---|---|
+| 0 % (perfect match) | no trip | not met |
+| +1 % / −1 % | 0.556 s / 0.438 s | met |
+| +2 % / −2 % | 0.487 s / 0.392 s | met |
+| +5 % / −5 % | 0.437 s / 0.357 s | met |
+
+**How the model compares with IEEE 1547-2018**
+
+| Requirement | Standard | Model |
+|---|---|---|
+| Unintentional islanding (8.1.1) | detect and trip within 2 s | met for mismatches of 1 % or more; a perfectly matched island is not detected |
+| Detection not based only on voltage and frequency trips (8.1, footnote 111) | additional method needed | active anti-islanding (derivative Sandia frequency shift) is on |
+| Voltage trip settings (6.4.1, Table 13) | Category III defaults | same values |
+| Overvoltage above 1.20 pu (Table 16) | cease to energize within 0.16 s | stops within 46 ms (LG fault, healthy phases at 1.34 pu) |
+| Momentary cessation below 0.50 pu (Table 16) | within 0.083 s | 46–76 ms |
+| Frequency droop (6.5.2.7) | mandatory for Category III | on |
+| Enter-service voltage window (Table 4) | 0.917–1.05 pu | same values |
+
+Limits of this comparison:
+
+- IEEE 1547-2018 is written for 60 Hz systems. The frequency trip limits (52 / 51.2 / 48.5 / 46.5 Hz) and the enter-service frequency window (49.5–50.1 Hz) are adapted to 50 Hz by shifting the standard's values by −10 Hz.
+- The enter-service delay is 0 s (the standard's default is 300 s; 0–600 s is allowed) so that a simulation does not take minutes.
+- Compliance is demonstrated by type tests under IEEE 1547.1. These simulations show behaviour consistent with the standard; they do not certify compliance.
+- Intentional islanding (clause 8.2) is not modelled.
 
 ## Reference
 
